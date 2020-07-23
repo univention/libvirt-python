@@ -287,6 +287,11 @@ py_types = {
     'const unsigned char *': ('z', 'bytes', 'constcharPtr', 'const char *'),
     'size_t': ('n', 'int', "size_t", "size_t"),
 
+    # TODO 'bool': ('', '', '', '', ''),
+    # TODO 'const char **': ('', '', '', '', ''),
+    # TODO 'const unsigned char *': ('', '', '', '', ''),
+    # TODO 'unsigned int *': ('', '', '', '', ''),
+
     'virDomainPtr': ('O', "virDomain", "virDomainPtr", "virDomainPtr"),
     'virDomain *': ('O', "virDomain", "virDomainPtr", "virDomainPtr"),
     'const virDomain *': ('O', "virDomain", "virDomainPtr", "virDomainPtr"),
@@ -356,8 +361,26 @@ py_types = {
     'virMemoryParameterPtr': ('', '_MemoryParameter', '', ''),
     'virSchedParameterPtr': ('', '_SchedParameter', '', ''),
     'virTypedParameterPtr': ('', '_TypedParameter', '', ''),
-}  # type: Dict[str, Tuple[str, str, str, str]]
 
+    'PyAny': ('', 'Any', '', ''),
+    'PyListAny': ('', 'List[Any]', '', ''),
+    'PyListInt': ('', 'List[int]', '', ''),
+    'PyListStr': ('', 'List[str]', '', ''),
+    'PyLisDomain': ('', 'List["virDomain"]', '', ''),
+    'PyListDomainSnapshot': ('', 'List["virDomainSnapshot"]', '', ''),
+    'PyListDomainCheckpoint': ('', 'List["virDomainCheckpoint"]', '', ''),
+    'PyListStoragePool': ('', 'List["virStoragePool"]', '', ''),
+    'PyListStorageVolume': ('', 'List["virStorageVolume"]', '', ''),
+    'PyListNetwork': ('', 'List["virNetwork"]', '', ''),
+    'PyListInterface': ('', 'List["virInterface"]', '', ''),
+    'PyListNodeDevice': ('', 'List["virNodeDevice"]', '', ''),
+    'PyListNWFilter': ('', 'List["virNWFilter"]', '', ''),
+    'PyListNWFilterBinding': ('', 'List["virNWFilterBinding"]', '', ''),
+    'PyListSecret': ('', 'List["virSecret"]', '', ''),
+    'PyDictAny': ('', 'Dict[str, Any]', '', ''),
+    'PyDictInt': ('', 'Dict[str, int]', '', ''),
+    'PyDictIntInt': ('', 'Dict[int, int]', '', ''),
+}  # type: Dict[str, Tuple[str, str, str, str]]
 
 unknown_types = defaultdict(list)  # type: Dict[str, List[str]]
 
