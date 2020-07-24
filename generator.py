@@ -176,18 +176,24 @@ def function(name: str, desc: str, ret: ArgumentType, args: List[ArgumentType], 
         return
     if name == "virConnectListDomains":
         name = "virConnectListDomainsID"
+    if onlyOverrides and file.startswith('python'):
+        skip_impl.add(name)
     functions[name] = (desc, ret, args, file, module, cond)
 
 
 def qemu_function(name: str, desc: str, ret: ArgumentType, args: List[ArgumentType], file: str, module: str, cond: str) -> None:
     if onlyOverrides and name not in qemu_functions:
         return
+    if onlyOverrides and file.startswith('python'):
+        qemu_skip_impl.add(name)
     qemu_functions[name] = (desc, ret, args, file, module, cond)
 
 
 def lxc_function(name: str, desc: str, ret: ArgumentType, args: List[ArgumentType], file: str, module: str, cond: str) -> None:
     if onlyOverrides and name not in lxc_functions:
         return
+    if onlyOverrides and file.startswith('python'):
+        lxc_skip_impl.add(name)
     lxc_functions[name] = (desc, ret, args, file, module, cond)
 
 
@@ -391,146 +397,24 @@ unknown_types = defaultdict(list)  # type: Dict[str, List[str]]
 #
 #######################################################################
 
-# Class methods which are written by hand in libvirt.c but the Python-level
-# code is still automatically generated (so they are not in skip_function()).
+# Generate Python code, but skip C implementation
+# Class methods which are written by hand in libvirt-override.c but the Python-level
+# code is still automatically generated (so they are not in skip_function).
 skip_impl = {
-    'virConnectGetVersion',
-    'virConnectGetLibVersion',
-    'virConnectListDomainsID',
-    'virConnectListDefinedDomains',
-    'virConnectListNetworks',
-    'virConnectListDefinedNetworks',
-    'virConnectListSecrets',
-    'virConnectListInterfaces',
-    'virConnectListStoragePools',
-    'virConnectListDefinedStoragePools',
     'virConnectListStorageVols',
     'virConnectListDefinedStorageVols',
-    'virConnectListDefinedInterfaces',
-    'virConnectListNWFilters',
-    'virDomainSnapshotListNames',
-    'virDomainSnapshotListChildrenNames',
     'virConnGetLastError',
     'virGetLastError',
-    'virDomainGetInfo',
-    'virDomainGetState',
-    'virDomainGetControlInfo',
-    'virDomainGetBlockInfo',
-    'virDomainGetJobInfo',
-    'virDomainGetJobStats',
-    'virNodeGetInfo',
-    'virNodeGetSecurityModel',
-    'virDomainGetSecurityLabel',
-    'virDomainGetSecurityLabelList',
-    'virDomainGetUUID',
-    'virDomainGetUUIDString',
-    'virDomainLookupByUUID',
-    'virNetworkGetUUID',
-    'virNetworkGetUUIDString',
-    'virNetworkLookupByUUID',
-    'virNetworkPortGetUUID',
-    'virNetworkPortGetUUIDString',
-    'virNetworkPortLookupByUUID',
-    'virDomainGetAutostart',
-    'virNetworkGetAutostart',
-    'virDomainBlockStats',
-    'virDomainInterfaceStats',
-    'virDomainMemoryStats',
-    'virNodeGetCellsFreeMemory',
-    'virDomainGetSchedulerType',
-    'virDomainGetSchedulerParameters',
-    'virDomainGetSchedulerParametersFlags',
-    'virDomainSetSchedulerParameters',
-    'virDomainSetSchedulerParametersFlags',
-    'virDomainSetBlkioParameters',
-    'virDomainGetBlkioParameters',
-    'virDomainSetMemoryParameters',
-    'virDomainGetMemoryParameters',
-    'virDomainSetNumaParameters',
-    'virDomainGetNumaParameters',
-    'virDomainGetVcpus',
-    'virDomainPinVcpu',
-    'virDomainPinVcpuFlags',
-    'virDomainGetVcpuPinInfo',
-    'virDomainGetEmulatorPinInfo',
-    'virDomainPinEmulator',
-    'virDomainGetIOThreadInfo',
-    'virDomainPinIOThread',
-    'virDomainSetIOThreadParams',
-    'virSecretGetValue',
-    'virSecretSetValue',
-    'virSecretGetUUID',
-    'virSecretGetUUIDString',
-    'virSecretLookupByUUID',
-    'virNWFilterGetUUID',
-    'virNWFilterGetUUIDString',
-    'virNWFilterLookupByUUID',
-    'virStoragePoolGetUUID',
-    'virStoragePoolGetUUIDString',
     'virStoragePoolLookupByUUID',
-    'virStoragePoolGetInfo',
-    'virStorageVolGetInfo',
-    'virStorageVolGetInfoFlags',
-    'virStoragePoolGetAutostart',
-    'virStoragePoolListVolumes',
-    'virDomainBlockPeek',
-    'virDomainMemoryPeek',
     'virEventRegisterImpl',
-    'virNodeListDevices',
-    'virNodeDeviceListCaps',
-    'virConnectBaselineCPU',
-    'virDomainRevertToSnapshot',
     'virDomainSendKey',
-    'virNodeGetCPUStats',
-    'virNodeGetMemoryStats',
-    'virDomainGetBlockJobInfo',
-    'virDomainMigrateGetCompressionCache',
-    'virDomainMigrateGetMaxSpeed',
-    'virDomainMigrateGetMaxDowntime',
-    'virDomainBlockStatsFlags',
-    'virDomainSetBlockIoTune',
-    'virDomainGetBlockIoTune',
-    'virDomainSetInterfaceParameters',
-    'virDomainGetInterfaceParameters',
-    'virDomainGetCPUStats',
-    'virDomainGetDiskErrors',
-    'virNodeGetMemoryParameters',
-    'virNodeSetMemoryParameters',
-    'virConnectSetIdentity',
-    'virNodeGetCPUMap',
-    'virDomainMigrate3',
-    'virDomainMigrateToURI3',
-    'virConnectGetCPUModelNames',
-    'virNodeGetFreePages',
-    'virNetworkGetDHCPLeases',
-    'virDomainBlockCopy',
-    'virNodeAllocPages',
-    'virDomainGetFSInfo',
-    'virDomainInterfaceAddresses',
-    'virDomainGetPerfEvents',
-    'virDomainSetPerfEvents',
-    'virDomainGetGuestVcpus',
-    'virConnectBaselineHypervisorCPU',
-    'virDomainGetLaunchSecurityInfo',
-    'virNodeGetSEVInfo',
-    'virNetworkPortGetParameters',
-    'virNetworkPortSetParameters',
-    'virDomainGetGuestInfo',
 }
-
-lxc_skip_impl = {
-    'virDomainLxcOpenNamespace',
-}
-
-qemu_skip_impl = {
-    'virDomainQemuMonitorCommand',
-    'virDomainQemuAgentCommand',
-}
+lxc_skip_impl = set()  # type: Set[str]
+qemu_skip_impl = set()  # type: Set[str]
 
 
-# These are functions which the generator skips completely - no python
-# or C code is generated. Generally should not be used for any more
-# functions than those already listed
+# Generate neither C nor Python code.
+# Generally should not be used for any more functions than those already listed
 skip_function = {
     'virConnectListDomains',  # Python API is called virConnectListDomainsID for unknown reasons
     'virConnSetErrorFunc',  # Not used in Python API  XXX is this a bug ?

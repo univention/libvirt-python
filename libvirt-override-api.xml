@@ -458,13 +458,13 @@
       <arg name='dev' type='virNodeDevicePtr' info='pointer to the node device'/>
       <return type='PyListStr' info='the list of Names or None in case of error'/>
     </function>
-    <function name='virSecretGetValue' file='libvirt' module='libvirt'>
+    <function name='virSecretGetValue' file='python' module='libvirt'>
       <info>Fetches the value associated with a secret.</info>
       <return type='char *' info='the secret value or None in case of error'/>
       <arg name='secret' type='virSecretPtr' info='virSecret secret'/>
       <arg name='flags' type='unsigned int' info='flags (unused; pass 0)'/>
     </function>
-    <function name='virConnectListSecrets' file='libvirt' module='libvirt'>
+    <function name='virConnectListSecrets' file='python' module='libvirt'>
       <info>List the defined secret IDs</info>
       <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
       <return type='PyListStr' info='the list of secret IDs or None in case of error'/>
@@ -475,7 +475,7 @@
       <arg name='flags' type='unsigned int' info='optional flags'/>
       <return type='PyListSecret' info='the list of secrets or None in case of error'/>
     </function>
-    <function name='virSecretSetValue' file='libvirt' module='libvirt'>
+    <function name='virSecretSetValue' file='python' module='libvirt'>
       <info>Associates a value with a secret.</info>
       <return type='int' info='0 on success, -1 on failure.'/>
       <arg name='secret' type='virSecretPtr' info='virSecret secret'/>
@@ -498,7 +498,7 @@
       <return type='char *' info='the UUID string or None in case of error'/>
       <arg name='secret' type='virSecretPtr' info='a secret object'/>
     </function>
-    <function name='virConnectListNWFilters' file='libvirt' module='libvirt'>
+    <function name='virConnectListNWFilters' file='python' module='libvirt'>
       <info>List the defined network filters</info>
       <arg name='conn' type='virConnectPtr' info='virConnect connection'/>
       <return type='PyListStr' info='the list of network filter IDs or None in case of error'/>
@@ -812,7 +812,7 @@
       <arg name='types' type='int' info='optional binary-OR of virDomainGuestInfoTypes'/>
       <arg name='flags' type='int' info='unused, always pass 0'/>
     </function>
-    <function name='virConnectSetIdentity' file='libvirt-host' module='libvirt-host'>
+    <function name='virConnectSetIdentity' file='python' module='libvirt-host'>
       <info>Override the default identity information associated with the connection.</info>
       <return type='int' info='0 if the identity change was accepted, -1 on error'/>
       <arg name='conn' type='virConnectPtr' info='pointer to the hypervisor connection'/>
