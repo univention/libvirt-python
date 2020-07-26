@@ -41,7 +41,7 @@ def check_console(console: Console) -> bool:
     if (console.state[0] == libvirt.VIR_DOMAIN_RUNNING or console.state[0] == libvirt.VIR_DOMAIN_PAUSED):
         if console.stream is None:
             console.stream = console.connection.newStream(libvirt.VIR_STREAM_NONBLOCK)
-            console.domain.openConsole(None, console.stream, 0)
+            console.domain.openConsole(None, console.stream, 0)  # type: ignore  # FIXME
             console.stream.eventAddCallback(libvirt.VIR_STREAM_EVENT_READABLE, stream_callback, console)
     else:
         if console.stream:
