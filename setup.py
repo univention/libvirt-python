@@ -353,7 +353,11 @@ of recent versions of Linux (and other OSes).''',
       ext_modules = _c_modules,
       py_modules = _py_modules,
       package_dir = {
-          '': 'build'
+          '': 'build',
+      },
+      packages = [ext.name for ext in _c_modules],
+      package_data = {
+          '': ['py.typed', '*.pyi'],
       },
       cmdclass = {
           'build': my_build,

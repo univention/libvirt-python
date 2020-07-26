@@ -414,17 +414,10 @@ qemu_skip_impl = set()  # type: Set[str]
 
 
 # Generate neither C nor Python code.
-# Generally should not be used for any more functions than those already listed
-skip_function = {
-    'virConnectListDomains',  # Python API is called virConnectListDomainsID for unknown reasons
-    'virConnSetErrorFunc',  # Not used in Python API  XXX is this a bug ?
-    'virResetError',  # Not used in Python API  XXX is this a bug ?
+custom_function = {
     'virGetVersion',  # Python C code is manually written
-    'virSetErrorFunc',  # Python API is called virRegisterErrorHandler for unknown reasons
-    'virConnCopyLastError',  # Python API is called virConnGetLastError instead
-    'virCopyLastError',  # Python API is called virGetLastError instead
     'virConnectOpenAuth',  # Python C code is manually written
-    'virDefaultErrorFunc',  # Python virErrorFuncHandler impl calls this from C
+
     'virConnectDomainEventRegister',   # overridden in virConnect.py
     'virConnectDomainEventDeregister',  # overridden in virConnect.py
     'virConnectDomainEventRegisterAny',   # overridden in virConnect.py
@@ -437,8 +430,6 @@ skip_function = {
     'virConnectNodeDeviceEventDeregisterAny',  # overridden in virConnect.py
     'virConnectSecretEventRegisterAny',   # overridden in virConnect.py
     'virConnectSecretEventDeregisterAny',  # overridden in virConnect.py
-    'virSaveLastError',  # We have our own python error wrapper
-    'virFreeError',  # Only needed if we use virSaveLastError
     'virConnectListAllDomains',  # overridden in virConnect.py
     'virDomainListAllCheckpoints',  # overridden in virDomain.py
     'virDomainCheckpointListAllChildren',  # overridden in virDomainCheckpoint.py
@@ -456,8 +447,6 @@ skip_function = {
     'virConnectGetAllDomainStats',  # overridden in virConnect.py
     'virDomainListGetStats',  # overridden in virConnect.py
 
-    'virStreamRecvAll',  # Pure python libvirt-override-virStream.py
-    'virStreamSendAll',  # Pure python libvirt-override-virStream.py
     'virStreamRecv',  # overridden in libvirt-override-virStream.py
     'virStreamSend',  # overridden in libvirt-override-virStream.py
     'virStreamRecvHole',  # overridden in libvirt-override-virStream.py
@@ -476,6 +465,25 @@ skip_function = {
     'virDomainFSThaw',  # overridden in virDomain.py
     'virDomainGetTime',  # overridden in virDomain.py
     'virDomainSetTime',  # overridden in virDomain.py
+}
+lxc_custom_function = set()  # type: Set[str]
+qemu_custom_function = set()  # type: Set[str]
+
+
+# Generate neither C nor Python code.
+# Generally should not be used for any more functions than those already listed
+skip_function = {
+    'virConnectListDomains',  # Python API is called virConnectListDomainsID for unknown reasons
+    'virConnSetErrorFunc',  # Not used in Python API  XXX is this a bug ?
+    'virResetError',  # Not used in Python API  XXX is this a bug ?
+    'virSetErrorFunc',  # Python API is called virRegisterErrorHandler for unknown reasons
+    'virConnCopyLastError',  # Python API is called virConnGetLastError instead
+    'virCopyLastError',  # Python API is called virGetLastError instead
+    'virDefaultErrorFunc',  # Python virErrorFuncHandler impl calls this from C
+    'virSaveLastError',  # We have our own python error wrapper
+    'virFreeError',  # Only needed if we use virSaveLastError
+    'virStreamRecvAll',  # Pure python libvirt-override-virStream.py
+    'virStreamSendAll',  # Pure python libvirt-override-virStream.py
 
     # 'Ref' functions have no use for bindings users.
     "virConnectRef",
@@ -560,20 +568,34 @@ function_skip_index_one = {
 }
 
 
-def print_function_wrapper(module: str, name: str, output: IO[str], export: IO[str], include: IO[str]) -> int:
+# Generate Python type stubs for custom C functions
+extra_stubs = {
+    "virRegisterErrorHandler",
+    "virEventInvokeHandleCallback",
+    "virEventInvokeTimeoutCallback",
+    "virEventInvokeFreeCallback",
+}
+qemu_extra_stubs = {
+    "virConnectDomainQemuMonitorEventDeregister",
+    "virConnectDomainQemuMonitorEventRegister",
+}
+lxc_extra_stubs = set()  # type: Set[str]
+
+
+def print_function_wrapper(module: str, name: str, output: IO[str], export: IO[str], include: IO[str], stub: IO[str]) -> int:
     """
     :returns: -1 on failure, 0 on skip, 1 on success.
     """
     try:
         if module == "libvirt":
             (desc, ret, args, file, mod, cond) = functions[name]
-            skip_function2, skip_impl2 = skip_function, skip_impl
+            skip_function2, skip_impl2, custom = skip_function, skip_impl, custom_function
         elif module == "libvirt-lxc":
             (desc, ret, args, file, mod, cond) = lxc_functions[name]
-            skip_function2, skip_impl2 = lxc_skip_function, lxc_skip_impl
+            skip_function2, skip_impl2, custom = lxc_skip_function, lxc_skip_impl, lxc_custom_function
         elif module == "libvirt-qemu":
             (desc, ret, args, file, mod, cond) = qemu_functions[name]
-            skip_function2, skip_impl2 = qemu_skip_function, qemu_skip_impl
+            skip_function2, skip_impl2, custom = qemu_skip_function, qemu_skip_impl, qemu_custom_function
         else:
             raise ValueError(module)
     except Exception:
@@ -581,6 +603,11 @@ def print_function_wrapper(module: str, name: str, output: IO[str], export: IO[s
         return -1
 
     if name in skip_function2:
+        return 0
+
+    stub.write("def %s(*args, **kwargs) -> Any: ...\n" % (name,))
+
+    if name in custom:
         return 0
     if name in skip_impl2:
         # Don't delete the function entry in the caller.
@@ -736,7 +763,7 @@ def print_function_wrapper(module: str, name: str, output: IO[str], export: IO[s
     return 1
 
 
-def print_c_pointer(classname: str, output: IO[str], export: IO[str], include: IO[str]) -> None:
+def print_c_pointer(classname: str, output: IO[str], export: IO[str], include: IO[str], stub: IO[str]) -> None:
     output.write("PyObject *\n")
     output.write("libvirt_%s_pointer(PyObject *self ATTRIBUTE_UNUSED, PyObject *args)\n" % classname)
     output.write("{\n")
@@ -757,23 +784,30 @@ def print_c_pointer(classname: str, output: IO[str], export: IO[str], include: I
     export.write("    { (char *)\"%s_pointer\", libvirt_%s_pointer, METH_VARARGS, NULL },\n" %
                  (classname, classname))
 
+    stub.write("def %s_pointer(*args, **kwargs) -> Any: ...\n" % (classname,))
+
 
 def buildStubs(module: str, api_xml: str) -> int:
     global onlyOverrides
 
-    if module not in ["libvirt", "libvirt-qemu", "libvirt-lxc"]:
-        print("ERROR: Unknown module type: %s" % module)
-        return -1
-
     if module == "libvirt":
         funcs = functions
         funcs_skipped = functions_skipped
+        stub_file = "build/libvirtmod/__init__.pyi"
+        stubs = extra_stubs
     elif module == "libvirt-lxc":
         funcs = lxc_functions
         funcs_skipped = lxc_functions_skipped
+        stub_file = "build/libvirtmod_lxc/__init__.pyi"
+        stubs = lxc_extra_stubs
     elif module == "libvirt-qemu":
         funcs = qemu_functions
         funcs_skipped = qemu_functions_skipped
+        stub_file = "build/libvirtmod_qemu/__init__.pyi"
+        stubs = qemu_extra_stubs
+    else:
+        print("ERROR: Unknown module type: %s" % module)
+        return -1
 
     try:
         onlyOverrides = False
@@ -823,9 +857,19 @@ def buildStubs(module: str, api_xml: str) -> int:
     wrapper.write("#include \"typewrappers.h\"\n")
     wrapper.write("#include \"build/%s.h\"\n\n" % (module,))
 
+    head, tail = os.path.split(stub_file)
+    if not os.path.exists(head):
+        os.mkdir(head)
+    open(os.path.join(head, "py.typed"), "w").close()  # create PEP-561 marker
+    stub = open(stub_file, "w")
+    stub.write("# Generated by generator.py\n\n")
+    stub.write("from typing import Any\n\n")
+    for name in sorted(stubs):
+        stub.write("def %s(*args, **kwargs) -> Any: ...\n" % (name,))
+
     for function in sorted(funcs):
         # Skip the functions which are not for the module
-        ret = print_function_wrapper(module, function, wrapper, export, include)
+        ret = print_function_wrapper(module, function, wrapper, export, include, stub)
         if ret < 0:
             failed += 1
             funcs_failed.append(function)
@@ -840,7 +884,7 @@ def buildStubs(module: str, api_xml: str) -> int:
     if module == "libvirt":
         # Write C pointer conversion functions.
         for classname in primary_classes:
-            print_c_pointer(classname, wrapper, export, include)
+            print_c_pointer(classname, wrapper, export, include, stub)
         # Write define wrappers around event id enums, so that the
         # preprocessor can see which enums were available.
         for event_id in event_ids:
@@ -849,6 +893,7 @@ def buildStubs(module: str, api_xml: str) -> int:
     include.close()
     export.close()
     wrapper.close()
+    stub.close()
 
     if not quiet:
         print("Generated %d wrapper functions" % nb_wrap)
@@ -1685,7 +1730,7 @@ def qemuBuildWrappers(module: str) -> None:
     fd.write("#\n")
 
     fd.write("try:\n")
-    fd.write("    import libvirtmod_qemu  # type: ignore\n")
+    fd.write("    import libvirtmod_qemu\n")
     fd.write("except ImportError as lib_e:\n")
     fd.write("    try:\n")
     fd.write("        import cygvirtmod_qemu as libvirtmod_qemu  # type: ignore\n")
@@ -1800,7 +1845,7 @@ def lxcBuildWrappers(module: str) -> None:
         extra.close()
 
     fd.write("try:\n")
-    fd.write("    import libvirtmod_lxc  # type: ignore\n")
+    fd.write("    import libvirtmod_lxc\n")
     fd.write("except ImportError as lib_e:\n")
     fd.write("    try:\n")
     fd.write("        import cygvirtmod_lxc as libvirtmod_lxc  # type: ignore\n")

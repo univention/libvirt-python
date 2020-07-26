@@ -4,7 +4,7 @@
 
 # On cygwin, the DLL is called cygvirtmod.dll
 try:
-    import libvirtmod  # type: ignore
+    import libvirtmod
 except ImportError as lib_e:
     try:
         import cygvirtmod as libvirtmod  # type: ignore
