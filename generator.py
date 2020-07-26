@@ -1037,7 +1037,7 @@ def is_python_noninteger_type(name: str) -> bool:
 def nameFixup(name: str, classe: str, type: str, file: str) -> str:
     # avoid a disastrous clash
     listname = classe + "List"
-    l = len(classe)
+    l = len(classe)  # noqa E741
     if name[0:l] == listname:
         func = name[l:]
         func = func[0:1].lower() + func[1:]

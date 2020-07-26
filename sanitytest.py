@@ -8,7 +8,7 @@ from typing import Dict, List, Set, Tuple  # noqa F401
 if len(sys.argv) >= 2:
     # Munge import path to insert build location for libvirt mod
     sys.path.insert(0, sys.argv[1])
-import libvirt
+import libvirt  # noqa E128
 
 
 def get_libvirt_api_xml_path():
