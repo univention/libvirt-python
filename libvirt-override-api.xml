@@ -141,7 +141,7 @@
     </function>
     <function name='virDomainGetUUID' file='python'>
       <info>Extract the UUID unique Identifier of a domain.</info>
-      <return type='char *' info='the 16 bytes string or None in case of error'/>
+      <return type='unsigned char *' info='the 16 bytes string or None in case of error'/>
       <arg name='domain' type='virDomainPtr' info='a domain object'/>
     </function>
     <function name='virDomainGetUUIDString' file='python'>
@@ -151,7 +151,7 @@
     </function>
     <function name='virNetworkGetUUID' file='python'>
       <info>Extract the UUID unique Identifier of a network.</info>
-      <return type='char *' info='the 16 bytes string or None in case of error'/>
+      <return type='unsigned char *' info='the 16 bytes string or None in case of error'/>
       <arg name='domain' type='virNetworkPtr' info='a network object'/>
     </function>
     <function name='virNetworkGetUUIDString' file='python'>
@@ -161,7 +161,7 @@
     </function>
     <function name='virNetworkPortGetUUID' file='python'>
       <info>Extract the UUID unique Identifier of a network port.</info>
-      <return type='char *' info='the 16 bytes string or None in case of error'/>
+      <return type='unsigned char *' info='the 16 bytes string or None in case of error'/>
       <arg name='domain' type='virNetworkPortPtr' info='a network port object'/>
     </function>
     <function name='virNetworkPortGetUUIDString' file='python'>
@@ -171,7 +171,7 @@
     </function>
     <function name='virStoragePoolGetUUID' file='python'>
       <info>Extract the UUID unique Identifier of a storage pool.</info>
-      <return type='char *' info='the 16 bytes string or None in case of error'/>
+      <return type='unsigned char *' info='the 16 bytes string or None in case of error'/>
       <arg name='pool' type='virStoragePoolPtr' info='a storage pool object'/>
     </function>
     <function name='virStoragePoolGetUUIDString' file='python'>
@@ -490,7 +490,7 @@
     </function>
     <function name='virSecretGetUUID' file='python'>
       <info>Extract the UUID unique Identifier of a secret.</info>
-      <return type='char *' info='the 16 bytes string or None in case of error'/>
+      <return type='unsigned char *' info='the 16 bytes string or None in case of error'/>
       <arg name='secret' type='virSecretPtr' info='a secret object'/>
     </function>
     <function name='virSecretGetUUIDString' file='python'>
@@ -523,7 +523,7 @@
     </function>
     <function name='virNWFilterGetUUID' file='python'>
       <info>Extract the UUID unique Identifier of a network filter.</info>
-      <return type='char *' info='the 16 bytes string or None in case of error'/>
+      <return type='unsigned char *' info='the 16 bytes string or None in case of error'/>
       <arg name='nwfilter' type='virNWFilterPtr' info='a network filter object'/>
     </function>
     <function name='virNWFilterGetUUIDString' file='python'>

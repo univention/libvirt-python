@@ -281,9 +281,10 @@ py_types = {
     'unsigned long': ('l', 'int', "long", "long"),
     'long long': ('L', 'int', "longlong", "long long"),
     'unsigned long long': ('L', 'int', "longlong", "long long"),
-    'unsigned char *': ('z', 'str', "charPtr", "char *"),
+    'unsigned char *': ('z', 'bytes', "charPtr", "char *"),
     'char *': ('z', 'str', "charPtr", "char *"),
     'const char *': ('z', 'str', "constcharPtr", "const char *"),
+    'const unsigned char *': ('z', 'bytes', 'constcharPtr', 'const char *'),
     'size_t': ('n', 'int', "size_t", "size_t"),
 
     'virDomainPtr': ('O', "virDomain", "virDomainPtr", "virDomainPtr"),
