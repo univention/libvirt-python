@@ -268,6 +268,7 @@ skipped_types = {
 #
 #  Table of remapping to/from the python type or class to the C
 #  counterpart.
+#  "C-type" -> (f=PyArg_parseTuple-format, t=Python-type, n=wrap-name, c=wrap-type)
 #
 #######################################################################
 
@@ -340,6 +341,20 @@ py_types = {
     'virDomainSnapshotPtr': ('O', "virDomainSnapshot", "virDomainSnapshotPtr", "virDomainSnapshotPtr"),
     'virDomainSnapshot *': ('O', "virDomainSnapshot", "virDomainSnapshotPtr", "virDomainSnapshotPtr"),
     'const virDomainSnapshot *': ('O', "virDomainSnapshot", "virDomainSnapshotPtr", "virDomainSnapshotPtr"),
+
+    'virErrorPtr': ('', 'libvirtError', '', ''),
+
+    'virEventAddHandleFunc': ('', '_EventAddHandleFunc', '', ''),
+    'virEventUpdateHandleFunc': ('', '_EventUpdateHandleFunc', '', ''),
+    'virEventRemoveHandleFunc': ('', '_EventRemoveHandleFunc', '', ''),
+    'virEventAddTimeoutFunc': ('', '_EventAddTimeoutFunc', '', ''),
+    'virEventUpdateTimeoutFunc': ('', '_EventUpdateTimeoutFunc', '', ''),
+    'virEventRemoveTimeoutFunc': ('', '_EventRemoveTimeoutFunc', '', ''),
+
+    'virBlkioParameterPtr': ('', '_BlkioParameter', '', ''),
+    'virMemoryParameterPtr': ('', '_MemoryParameter', '', ''),
+    'virSchedParameterPtr': ('', '_SchedParameter', '', ''),
+    'virTypedParameterPtr': ('', '_TypedParameter', '', ''),
 }  # type: Dict[str, Tuple[str, str, str, str]]
 
 
@@ -1041,6 +1056,7 @@ functions_noexcept = {
     'virNWFilterBindingGetPortDev',
 }
 
+# xx -> list of (index, func, name, ret, args, file, mod) tuples
 function_classes = {
     "None": []
 }  # type: Dict[str, List[Tuple[int, str, str, ArgumentType, List[ArgumentType], str, str]]]
@@ -1378,17 +1394,21 @@ def buildWrappers(module: str) -> None:
             if file != oldfile:
                 classes.write("#\n# Functions from module %s\n#\n\n" % file)
                 oldfile = file
+
             classes.write("def %s(" % func)
             for n, (a_name, a_type, a_info) in enumerate(args):
                 if n != 0:
                     classes.write(", ")
-                classes.write("%s" % a_name)
                 if a_name == "flags" or is_optional_arg(a_info):
                     if is_integral_type(a_type):
-                        classes.write("=0")
+                        classes.write("%s: %s = 0" % (a_name, py_type(a_type)))
                     else:
-                        classes.write("=None")
-            classes.write("):\n")
+                        classes.write("%s: Optional[%s] = None" % (a_name, py_type(a_type)))
+                else:
+                    classes.write("%s: %s" % (a_name, py_type(a_type)))
+
+            r_type, r_info, r_field = ret
+            classes.write(") -> %s:\n" % (py_type(r_type),))
             writeDoc(module, name, args, '    ', classes)
 
             for a_name, a_type, a_info in args:
@@ -1400,7 +1420,6 @@ def buildWrappers(module: str) -> None:
                                   "        %s__o = %s%s\n" %
                                   (a_name, a_name, classes_type[a_type][0]))
 
-            r_type, r_info, r_field = ret
             if r_type != "void":
                 classes.write("    ret = ")
             else:
@@ -1479,10 +1498,10 @@ def buildWrappers(module: str) -> None:
             if classname in ["virDomain", "virNetwork", "virInterface", "virStoragePool",
                              "virStorageVol", "virNodeDevice", "virSecret", "virStream",
                              "virNWFilter", "virNWFilterBinding"]:
-                classes.write("    def __init__(self, conn, _obj=None):\n")
+                classes.write("    def __init__(self, conn: 'virConnect', _obj=None) -> None:\n")
                 classes.write("        self._conn = conn\n")
             elif classname in ["virDomainCheckpoint", "virDomainSnapshot"]:
-                classes.write("    def __init__(self, net, _obj=None):\n")
+                classes.write("    def __init__(self, dom: 'virDomain', _obj=None) -> None:\n")
                 classes.write("        self._dom = dom\n")
                 classes.write("        self._conn = dom.connect()\n")
             elif classname in ["virNetworkPort"]:
@@ -1490,14 +1509,14 @@ def buildWrappers(module: str) -> None:
                 classes.write("        self._net = net\n")
                 classes.write("        self._conn = net.connect()\n")
             else:
-                classes.write("    def __init__(self, _obj=None):\n")
+                classes.write("    def __init__(self, _obj=None) -> None:\n")
 
             classes.write("        if type(_obj).__name__ not in [\"PyCapsule\", \"PyCObject\"]:\n")
             classes.write("            raise Exception(\"Expected a wrapped C Object but got %s\" % type(_obj))\n")
             classes.write("        self._o = _obj\n\n")
             destruct = None
             if classname in classes_destructors:
-                classes.write("    def __del__(self):\n")
+                classes.write("    def __del__(self) -> None:\n")
                 classes.write("        if self._o is not None:\n")
                 classes.write("            libvirtmod.%s(self._o)\n" %
                               classes_destructors[classname])
@@ -1506,18 +1525,18 @@ def buildWrappers(module: str) -> None:
 
             if classname not in class_skip_connect_impl:
                 # Build python safe 'connect' method
-                classes.write("    def connect(self):\n")
+                classes.write("    def connect(self) -> 'virConnect':\n")
                 classes.write("        return self._conn\n\n")
 
             if classname in class_domain_impl:
-                classes.write("    def domain(self):\n")
+                classes.write("    def domain(self) -> 'virDomain':\n")
                 classes.write("        return self._dom\n\n")
 
             if classname in class_network_impl:
-                classes.write("    def network(self):\n")
+                classes.write("    def network(self) -> 'virNetwork':\n")
                 classes.write("        return self._net\n\n")
 
-            classes.write("    def c_pointer(self):\n")
+            classes.write("    def c_pointer(self) -> int:\n")
             classes.write("        \"\"\"Get C pointer to underlying object\"\"\"\n")
             classes.write("        return libvirtmod.%s_pointer(self._o)\n\n" %
                           classname)
@@ -1542,14 +1561,18 @@ def buildWrappers(module: str) -> None:
                 oldfile = file
                 classes.write("    def %s(self" % func)
                 for n, (a_name, a_type, a_info) in enumerate(args):
-                    if n != index:
-                        classes.write(", %s" % a_name)
+                    if n == index:
+                        continue
                     if a_name == "flags" or is_optional_arg(a_info):
                         if is_integral_type(a_type):
-                            classes.write("=0")
+                            classes.write(", %s: %s = 0" % (a_name, py_type(a_type)))
                         else:
-                            classes.write("=None")
-                classes.write("):\n")
+                            classes.write(", %s: Optional[%s] = None" % (a_name, py_type(a_type)))
+                    else:
+                        classes.write(", %s: %s" % (a_name, py_type(a_type)))
+
+                r_type, r_info, r_field = ret
+                classes.write(") -> %s:\n" % (py_type(r_type),))
                 writeDoc(module, name, args, '        ', classes)
                 for n, (a_name, a_type, a_info) in enumerate(args):
                     if a_type in classes_type:
@@ -1560,7 +1583,7 @@ def buildWrappers(module: str) -> None:
                             classes.write("        else:\n"
                                           "            %s__o = %s%s\n" %
                                           (a_name, a_name, classes_type[a_type][0]))
-                r_type, r_info, r_field = ret
+
                 if r_type != "void":
                     classes.write("        ret = ")
                 else:
@@ -1754,10 +1777,10 @@ def qemuBuildWrappers(module: str) -> None:
     fd.write("#\n")
 
     fd.write("try:\n")
-    fd.write("    import libvirtmod_qemu\n")
+    fd.write("    import libvirtmod_qemu  # type: ignore\n")
     fd.write("except ImportError as lib_e:\n")
     fd.write("    try:\n")
-    fd.write("        import cygvirtmod_qemu as libvirtmod_qemu\n")
+    fd.write("        import cygvirtmod_qemu as libvirtmod_qemu  # type: ignore\n")
     fd.write("    except ImportError as cyg_e:\n")
     fd.write("        if \"No module named\" in str(cyg_e):\n")
     fd.write("            raise lib_e\n\n")
@@ -1783,11 +1806,12 @@ def qemuBuildWrappers(module: str) -> None:
         for n, (a_name, a_type, a_info) in enumerate(args):
             if n != 0:
                 fd.write(", ")
-            fd.write("%s" % a_name)
-        fd.write("):\n")
-        writeDoc(module, name, args, '    ', fd)
+            fd.write("%s: %s" % (a_name, py_type(a_type, 'libvirt')))
 
         r_type, r_info, r_field = ret
+        fd.write(") -> %s:\n" % (py_type(r_type, 'libvirt'),))
+        writeDoc(module, name, args, '    ', fd)
+
         if r_type != "void":
             fd.write("    ret = ")
         else:
@@ -1868,10 +1892,10 @@ def lxcBuildWrappers(module: str) -> None:
         extra.close()
 
     fd.write("try:\n")
-    fd.write("    import libvirtmod_lxc\n")
+    fd.write("    import libvirtmod_lxc  # type: ignore\n")
     fd.write("except ImportError as lib_e:\n")
     fd.write("    try:\n")
-    fd.write("        import cygvirtmod_lxc as libvirtmod_lxc\n")
+    fd.write("        import cygvirtmod_lxc as libvirtmod_lxc  # type: ignore\n")
     fd.write("    except ImportError as cyg_e:\n")
     fd.write("        if \"No module named\" in str(cyg_e):\n")
     fd.write("            raise lib_e\n\n")
@@ -1887,8 +1911,10 @@ def lxcBuildWrappers(module: str) -> None:
         for n, (a_name, a_type, a_info) in enumerate(args):
             if n != 0:
                 fd.write(", ")
-            fd.write("%s" % a_name)
-        fd.write("):\n")
+            fd.write("%s: %s" % (a_name, py_type(a_type, 'libvirt')))
+
+        r_type, r_info, r_field = ret
+        fd.write(") -> %s:\n" % (py_type(r_type, 'libvirt'),))
         writeDoc(module, name, args, '    ', fd)
 
         r_type, r_info, r_field = ret
@@ -1935,6 +1961,26 @@ def lxcBuildWrappers(module: str) -> None:
         fd.write("\n")
 
     fd.close()
+
+
+def py_type(a_type: str, module: str = '') -> str:
+    """
+    Lookup argument/return type
+    """
+    try:
+        (f, t, n, c) = py_types[a_type]
+    except LookupError:
+        unknown_types[a_type].append('')
+        print("WARNING: missing type %s" % (a_type,))
+        return 'Any'
+
+    if f != 'O':
+        return t
+
+    if not module:
+        return "'%s'" % (t,)
+
+    return '%s.%s' % (module, t)
 
 
 quiet = False
